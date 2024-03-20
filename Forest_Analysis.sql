@@ -1,93 +1,95 @@
---tworzenie tabeli a następnie import danych
+--Creating table and then importing data from CSV file using COPY keyword
 CREATE TABLE forests(
 	CountryID INT PRIMARY KEY,
-	"Country and Area" TEXT,
-	"Forest Area, 1990" NUMERIC(10,2),
-	"Forest Area, 2000" NUMERIC(10,2),
-	"Forest Area, 2010" NUMERIC(10,2),
-	"Forest Area, 2015" NUMERIC(10,2),
-	"Forest Area, 2020" NUMERIC(10,2),
-	"Total Land Area, 2020"  NUMERIC(10,2),
-	"Forest Area as a Proportion of Total Land Area, 2020" NUMERIC(10,2),
-	"Deforestation, 2015-2020" NUMERIC(10,2),
-	"Total Forest Area Affected by Fire, 2015" NUMERIC(10,2)
+	Country TEXT,
+	Forest_area_1990 NUMERIC(10,2),
+	Forest_area_2000 NUMERIC(10,2),
+	Forest_area_2010 NUMERIC(10,2),
+	Forest_area_2015 NUMERIC(10,2),
+	Forest_area_2020 NUMERIC(10,2),
+	Total_land_area_2020  NUMERIC(10,2),
+	Forest_area_as_a_percentage_of_total_area_2020 NUMERIC(10,2),
+	Deforestation_2015_2020 NUMERIC(10,2),
+	Burnt_forest_area_2020 NUMERIC(10,2)
 );
 
---sprawdzenie zawartości danych
+--checking whether data were correctly copied to the table
 SELECT * FROM forests LIMIT 100;
 
---najpierw sprawdźmy najbardziej i najmniej zalesione kraje obecnie(2020 rok)
+--first, let's check the most and least forested countries today(2020)
 SELECT
-    "Country and Area",
-    "Forest Area, 2020",
-    ROW_NUMBER() OVER (ORDER BY "Forest Area, 2020" DESC) AS forest_area_rank
+    Country,
+    Forest_area_2020,
+    ROW_NUMBER() OVER (ORDER BY Forest_area_2020 DESC) AS forest_area_rank
 FROM
     forests
 WHERE
-    countryid <> 1.0
+    Countryid <> 1.0
 LIMIT 10;
---TOP 5 NAJBARDZIEJ ZALESIONYCH: ROSJA, BRAZYLIA, KANADA, USA, CHINY
+--TOP 5 Most Forested: Russia, Brazil, China, Canada, USA
 
 SELECT
-    "Country and Area",
-    "Forest Area, 2020",
-    ROW_NUMBER() OVER (ORDER BY "Forest Area, 2020") AS forest_area_rank
+    Country,
+    Forest_area_2020,
+    ROW_NUMBER() OVER (ORDER BY Forest_area_2020) AS forest_area_rank
 FROM
     forests
 WHERE
-    countryid <> 1.0
+    Countryid <> 1.0
 LIMIT 10;
---TOP 5 NAJMNIEJ ZALESIONYCH: MONAKO, HOLY SEE, Falklandy, GIBRALTAR, NAURU, ZALESIENIE W KAZDYM Z NICH TO 0%
+--TOP 5 Least Forested: MONACO, HOLY SEE, FALCELANDS, GIBRALTAR, NAURU, each with a percentage of forestation equal to 0%
 
 SELECT
-    CORR("Total Land Area, 2020", "Forest Area as a Proportion of Total Land Area, 2020") AS Correlation
+    CORR(Total_land_area_2020, Forest_area_as_a_percentage_2020) AS Correlation
 FROM
     forests;
---Nie istnieje korelacja pomiędzy wielkością kraju, a procentem zalesienia. Oznacza to, że zalesienie nie zależy od wielkości kraju
+--There is no correlation between the size of the country and the percentage of forestation. 
+--It means that forestation does not depend on the size of the country
 
---SPRAWDŹMY TERAZ RÓŻNICĘ W ZALESIENIU NA PRZESTRZENI LAT(WYZNACZYMY TREND DLA KAZDEGO Z PANSTW)
+--To make further analysis, let's create a materialized view to store the data needed to conduct the deforestation analysis
 CREATE MATERIALIZED VIEW Changes_in_forestation AS(
 	SELECT
-		"Country and Area" AS Countries,
-		"Forest Area, 1990" AS Forest_area,
-		("Forest Area, 2000" - "Forest Area, 1990") AS Forest_Area_Change_1990_2000,
-		("Forest Area, 2010" - "Forest Area, 2000") AS Forest_Area_Change_2000_2010,
-		("Forest Area, 2015" - "Forest Area, 2010") AS Forest_Area_Change_2010_2015,
-		("Forest Area, 2020" - "Forest Area, 2015") AS Forest_Area_Change_2015_2020,
-		("Forest Area, 2020" - "Forest Area, 1990") AS Total_forest_area_change
+		Country AS Countries,
+		Forest_area_1990 AS Forest_area,
+		(Forest_area_2000 - Forest_area_1990) AS Forest_Area_Change_1990_2000,
+		(Forest_area_2010 - Forest_area_2000) AS Forest_Area_Change_2000_2010,
+		(Forest_area_2015 - Forest_area_2010) AS Forest_Area_Change_2010_2015,
+		(Forest_area_2020 - Forest_area_2015) AS Forest_Area_Change_2015_2020,
+		(Forest_area_2020 - Forest_area_1990) AS Total_forest_area_change
 	FROM
 		forests
-	WHERE countryid <> 1.0
+	WHERE Countryid <> 1.0
 )
 	
---SPRAWDZMY JAK WYGLADAJA NASZE DANE
+--checking correctness
 SELECT * FROM Changes_in_forestation;
 
---NA PODSTAWIE TRENDU ZNAJDZIEMY PANSTWA KTORE MIALY TREND DODATNI I TE KTÓRE MIAŁY UJEMNY
+--ON THE BASIS OF THE TREND WE WILL FIND COUNTRIES THAT HAD A POSITIVE TREND AND THOSE THAT HAD A NEGATIVE ONE
 SELECT COUNT(Countries)
 FROM Changes_in_forestation
 WHERE Total_forest_area_change > 0;
---91 PANSTW MIAŁO TREND DODATNI
+--91 Countries have had a positive trend
 
 SELECT COUNT(Countries)
 FROM Changes_in_forestation
 WHERE Total_forest_area_change < 0;
---99 PANSTW MIAŁO TREND UJEMNY, POZOSTAŁE 46 PANSTW MIALY TREND NA 0, CO MOZE BYC ZWIAZANE Z BRAKIEM WYSTARCZAJACYCH DANYCH
+--99 Countries have had a negative trend,
+--THE OTHER 46 COUNTRIES HAD A TREND OF 0, WHICH MAY BE RELATED TO THE LACK OF SUFFICIENT DATA
 
---SPRAWDZMY TREND GLOBALNY:
+--Let's check the global trend over the years
 SELECT
-    AVG("Forest Area, 2000" - "Forest Area, 1990") AS "Avg_Change_1990_2000",
-    AVG("Forest Area, 2010" - "Forest Area, 2000") AS "Avg_Change_2000_2010",
-    AVG("Forest Area, 2015" - "Forest Area, 2010") AS "Avg_Change_2010_2015",
-    AVG("Forest Area, 2020" - "Forest Area, 2015") AS "Avg_Change_2015_2020"
+    AVG(Forest_area_2000 - Forest_area_1990) AS "Avg_Change_1990_2000",
+    AVG(Forest_area_2010 - Forest_area_2000) AS "Avg_Change_2000_2010",
+    AVG(Forest_area_2015 - Forest_area_2010) AS "Avg_Change_2010_2015",
+    AVG(Forest_area_2020 - Forest_area_2015) AS "Avg_Change_2015_2020"
 FROM
     forests
 WHERE
-    countryid <> 1.0;
+    Countryid <> 1.0;
 
---TREND JEST PRZEWAŻNIE UJEMNY, NATOMIAST SAMA ŚREDNIA NIEWIELE NAM MÓWI Z UWAGI NA ROZPIĘTOŚĆ KRAJÓW POD WZGLĘDEM TERENU
+--TREND IS MOSTLY NEGATIVE, WHILE THE AVERAGE ALONE TELLS US LITTLE DUE TO THE SPREAD OF COUNTRIES IN TERMS OF TERRAIN
 
---SPRAWDZMY, KTÓRE PAŃSTWA MIAŁY NAJWIĘKSZE POSTĘPY W ZALESIANIU PROCENTOWO, A KTÓRE NAJGORSZY
+--LET'S SEE WHICH COUNTRIES HAVE HAD THE MOST PROGRESS IN REFORESTATION IN PERCENTAGE TERMS, AND WHICH HAVE HAD THE WORST
 SELECT
 	Countries,
 	ROUND((Total_forest_area_change / Forest_area) * 100, 2) AS Forestation_percentage_change
@@ -97,7 +99,7 @@ WHERE
 	Forest_area > 0
 ORDER BY 2 DESC
 LIMIT 10;
---NAJLEPSZY JEST BAHRAJN(+215%), ISLANDIA(+200,8%) I URUGWAJ(+154,7%)
+--BAHRAIN(+215%), ICELAND(+200.8%) AND URUGUAY(+154.7%) ARE THE BEST ONES
 
 SELECT
 	Countries,
@@ -108,21 +110,21 @@ WHERE
 	Forest_area > 0
 ORDER BY 2 
 LIMIT 10;
---NAJGORZEJ WYPADAJA TAKIE KRAJE JAK WYBRZEZE KOŚCI SŁONIOWEJ(-64%), NIKARAGUA(-47%), NIGER(-44,4%)
+--THE WORST PERFORMING COUNTRIES ARE IVORY COAST (-64%), NICARAGUA (-47%), NIGER (-44.4%)
 
---SPRAWDŹMY, JAKI WPŁYW MIAŁO WYLESIENIE W OSTATNICH LATACH, A JAKI POŻARY
+--I'LL TRY TO EXAMINE THE IMPACT OF DEFORESTATION IN RECENT YEARS AND FIRES
 SELECT
 	c.Countries,
-    ROUND(COALESCE(f."Deforestation, 2015-2020"/ABS(c."forest_area_change_2015_2020"), 0) * 100, 2) AS "Procent wylesienia",
-	ROUND(COALESCE(f."Total Forest Area Affected by Fire, 2015"/ABS(c."forest_area_change_2015_2020"), 0) * 100, 2) AS "Procent spalonych lasów"
+    ROUND(COALESCE(f.Deforestation_2015_2020/ABS(c.Forest_Area_Change_2015_2020), 0) * 100, 2) AS "Procent wylesienia",
+	ROUND(COALESCE(f.Burnt_forest_area_2020/ABS(c.Forest_Area_Change_2015_2020), 0) * 100, 2) AS "Procent spalonych lasów"
 FROM
     forests f
-FULL JOIN Changes_in_forestation C ON f."Country and Area" = c.Countries
+FULL JOIN Changes_in_forestation C ON f.Country = c.Countries
 WHERE
-    f.countryid <> 1.0 AND c."forest_area_change_2015_2020" > 0
+    f.Countryid <> 1.0 AND c.Forest_Area_Change_2015_2020 > 0
 ORDER BY 3 DESC, 2 DESC;
 
---ISTNIEJĄ DANE TYLKO DLA 69 SPOŚRÓD 235 KRAJÓW I REGIONÓW NA ŚWIECIE, NAJBARDZIEJ PROCENTOWO PRZEZ 5 LAT WYLESIŁA SIĘ MOŁDAWIA(340%) I AZERBEJDŻAN(160,28%)
---NAJWIĘCEJ LASÓW STRAWIŁ POŻAR W AUSTRALII(1622,49%), rosji(721,23%) i znowu Mołdawii(350%).
---NALEŻY MIEĆ NA UWADZE, ŻE TO SĄ DANE W PEAKU, A ZMIANA ZALESIENIA NASTĘPUJE PRZEZ 5 KOLEJNYCH LAT, WIĘC MOGŁY BYĆ TO ZARÓWNO ZMIANY CHWILOWE JAK I ZASADZANIE NOWYCH LASÓW
---POMIMO SPOREJ WYCINKI
+--DATA ARE AVAILABLE FOR ONLY 69 OUT OF 235 COUNTRIES AND REGIONS IN THE WORLD, THE MOST DEFORESTED COUNTRIES IN 5 YEARS ARE MOLDOVA (340%) AND AZERBAIJAN (160.28%)
+--THE MOST FOREST LOST BY FIRE WERE AUSTRALIA (1622.49%), RUSSIA (721.23%) and again MOLDOVA (350%).
+--IT SHOULD BE BORNE IN MIND THAT THESE ARE PEAK FIGURES AND THE CHANGE IN FOREST COVER OCCURS OVER 5 CONSECUTIVE YEARS, SO IT COULD HAVE BEEN BOTH TEMPORARY CHANGES AND THE PLANTING OF NEW FORESTS
+--DESPITE SIGNIFICANT DEFORESTATION
