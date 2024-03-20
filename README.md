@@ -30,7 +30,7 @@ c)Run the report in Power BI, which you can then view and study various types of
 4.Author: Tomasz Jarmoc
 
 5.Data source: https://www.kaggle.com/datasets/kanchana1990/global-forest-insights-1990-2020-fao
-///////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////
 (PL)Analiza Zalesienia i Zmian w Środowisku Naturalnym(Forest-Insights)
 Projekt ten zawiera skrypty SQL służące do analizy danych dotyczących zalesienia oraz zmian w środowisku naturalnym na podstawie danych z różnych krajów i regionów.
 
