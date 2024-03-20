@@ -13,13 +13,19 @@ Projekt skupia się na analizie danych dotyczących zalesienia oraz zmian w śro
 Zawiera skrypty SQL, które umożliwiają tworzenie tabel i import danych, przeprowadzenie analizy trendów zalesienia,
 obliczenie korelacji między wielkością kraju a zalesieniem, a także analizę wpływu wylesień i pożarów na zmiany w zalesieniu.
 
-2.Wymagania
-Baza danych obsługująca skrypty SQL (np. PostgreSQL, MySQL)
+W póżniejszym etapie dodano raport(w trakcie tworzenia) wizualizujący dane i trendy w zalesieniu.
 
-3.Instrukcja Użycia
+2.Wymagania
+Baza danych obsługująca skrypty SQL (np. PostgreSQL, MySQL),
+Power BI Desktop lub Online
+
+3.Instrukcja Użycia:
+
 a)Sklonuj repozytorium na swój lokalny komputer.
-b)Uruchom skrypty SQL w swojej bazie danych.
-c)Wykorzystaj zapytania SQL do przeprowadzenia analizy danych oraz wygenerowania raportów.
+
+b)Uruchom skrypt SQL w swojej bazie danych, należy jedynie skopiować dane poleceniem COPY.
+
+c)Uruchom raport w Power BI, który następnie możesz przeglądać i badać różnego rodzaju trendy.
 
 4.Autor: Tomasz Jarmoc
 
